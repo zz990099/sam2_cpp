@@ -47,6 +47,15 @@ std::tuple<cv::Mat> ReadTestImage()
   return {image};
 }
 
+std::vector<std::filesystem::path> GetTrackTestset()
+{
+  const std::filesystem::path demo_dir  = "/workspace/test_data/golf";
+  auto                        rgb_paths = get_files_in_directory(demo_dir);
+  std::sort(rgb_paths.begin(), rgb_paths.end());
+
+  return std::move(rgb_paths);
+}
+
 TEST(sam2_test, trt_core_point_correctness)
 {
   auto model   = CreateModel();
@@ -78,11 +87,7 @@ TEST(sam2_test, trt_core_point_register_correctness)
 TEST(sam2_test, trt_core_point_track_correctness)
 {
   auto model   = CreateModel();
-  auto [image] = ReadTestImage();
-
-  const std::filesystem::path demo_dir  = "/workspace/test_data/mustard0";
-  auto                        rgb_paths = get_files_in_directory(demo_dir);
-  std::sort(rgb_paths.begin(), rgb_paths.end());
+  auto rgb_paths = GetTrackTestset();
 
   for (size_t i = 0; i < rgb_paths.size(); ++i)
   {
@@ -93,7 +98,7 @@ TEST(sam2_test, trt_core_point_track_correctness)
     cv::Mat masks;
     if (i == 0)
     {
-      model->Register(image, {{130, 300}}, std::vector<int>{1}, masks, false);
+      model->Register(image, {{420, 220}}, std::vector<int>{1}, masks, false);
     } else
     {
       model->Track(image, masks, false);
@@ -104,5 +109,33 @@ TEST(sam2_test, trt_core_point_track_correctness)
     LOG(INFO) << "save path : " << std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename();
     cv::imwrite(std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename(),
                 *helper.getImage());
+  }
+}
+
+
+
+TEST(sam2_test, trt_core_point_track_speed)
+{
+  auto model   = CreateModel();
+  auto rgb_paths = GetTrackTestset();
+
+  FPSCounter fps_counter;
+  fps_counter.Start();
+  for (size_t i = 0; i < 1000ul; ++i)
+  {
+    cv::Mat image = cv::imread(rgb_paths[i % 2].string());
+    CHECK(!image.empty());
+
+    cv::Mat masks;
+    if (i == 0)
+    {
+      model->Register(image, {{420, 220}}, std::vector<int>{1}, masks, false);
+    } else
+    {
+      model->Track(image, masks, false);
+    }
+    fps_counter.Count(1);
+    if (i % 50 == 0)
+      LOG(WARNING) << "Average qps : " << fps_counter.GetFPS();
   }
 }
