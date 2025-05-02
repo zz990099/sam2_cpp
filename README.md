@@ -6,9 +6,9 @@
 
 ## Demo
 
-| <img src="./assets/left.png" alt="1" width="500"> | <img src="./assets/disp_color.png" alt="1" width="500"> |
-|:----------------------------------------:|:----:|
-| **left image**  | **disp in color** |
+| <img src="./assets/persons.jpg" alt="1" width="300"> | <img src="./assets/sam2_result.png" alt="1" width="300"> | <img src="./assets/sam2_track.gif" alt="1" width="300"> |
+|:----------------------------------------:|:----:|:----:|
+| **image**  | **masks** | **track_result** |
 
 以下带有**opt**标志的代表在模型导出工程[SAM2Export](https://github.com/Aimol-l/SAM2Export)基础上，优化`MemoryAttention`模型结构后导出的onnx模型，具体请查看[pr_link](https://github.com/Aimol-l/SAM2Export/pull/10).
 
