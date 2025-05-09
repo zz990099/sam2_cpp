@@ -9,18 +9,16 @@ class BaseSam2TrackModel : public BaseSamModel {
 public:
   virtual ~BaseSam2TrackModel() = default;
 
-  virtual bool Register(const cv::Mat                          &image,
-                        const std::vector<std::pair<int, int>> &points,
+  virtual bool SetImage(const cv::Mat &image, bool isRGB = false) = 0;
+
+  virtual bool Register(const std::vector<std::pair<int, int>> &points,
                         const std::vector<int>                 &labels,
-                        cv::Mat                                &result,
-                        bool                                    isRGB = false) = 0;
+                        std::unordered_map<size_t, cv::Mat>    &results) = 0;
 
-  virtual bool Register(const cv::Mat             &image,
-                        const std::vector<BBox2D> &boxes,
-                        cv::Mat                   &result,
-                        bool                       isRGB = false) = 0;
+  virtual bool Register(const std::vector<BBox2D>           &boxes,
+                        std::unordered_map<size_t, cv::Mat> &results) = 0;
 
-  virtual bool Track(const cv::Mat &image, cv::Mat &result, bool isRGB = false) = 0;
+  virtual bool Track(std::unordered_map<size_t, cv::Mat> &results) = 0;
 
 protected:
   BaseSam2TrackModel(const std::string                             &model_name,

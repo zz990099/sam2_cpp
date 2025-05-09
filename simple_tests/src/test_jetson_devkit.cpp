@@ -20,7 +20,7 @@ static std::shared_ptr<BaseSam2TrackModel> CreateModel()
   auto encoder_engine = CreateTrtInferCore("/workspace/models/image_encoder.engine");
   auto decoder_engine = CreateTrtInferCore("/workspace/models/image_decoder.engine");
   auto memory_attention_engine =
-      CreateTrtInferCore("/workspace/models/memory_attention.engine",
+      CreateTrtInferCore("/workspace/models/memory_attention_opt.engine",
                          {{"current_vision_feat", {1, 256, 64, 64}},
                           {"current_vision_pos_embed", {4096, 1, 256}},
                           {"memory_0", {16, 256}},
@@ -75,11 +75,14 @@ TEST(sam2_test, trt_core_point_register_correctness)
   auto model   = CreateModel();
   auto [image] = ReadTestImage();
 
-  cv::Mat masks;
-  model->Register(image, {{225, 370}}, std::vector<int>{1}, masks, false);
+  CHECK(model->SetImage(image));
+
+  std::unordered_map<size_t, cv::Mat> masks;
+  CHECK(model->Register({{225, 370}}, std::vector<int>{1}, masks));
+  CHECK(masks.size() == 1);
 
   ImageDrawHelper helper(std::make_shared<cv::Mat>(image.clone()));
-  helper.addRedMaskToForeground(masks);
+  helper.addRedMaskToForeground(masks.begin()->second);
 
   cv::imwrite("/workspace/test_data/sam2_register_result.png", *helper.getImage());
 }
@@ -95,16 +98,20 @@ TEST(sam2_test, trt_core_point_track_correctness)
     cv::Mat image = cv::imread(rgb_paths[i].string());
     CHECK(!image.empty());
 
-    cv::Mat masks;
+    CHECK(model->SetImage(image));
+
+    std::unordered_map<size_t, cv::Mat> masks;
     if (i == 0)
     {
-      model->Register(image, {{420, 220}}, std::vector<int>{1}, masks, false);
+      CHECK(model->Register({{420, 220}}, std::vector<int>{1}, masks));
+      CHECK(masks.size() == 1);
     } else
     {
-      model->Track(image, masks, false);
+      model->Track(masks);
+      CHECK(masks.size() == 1);
     }
     ImageDrawHelper helper(std::make_shared<cv::Mat>(image.clone()));
-    helper.addRedMaskToForeground(masks);
+    helper.addRedMaskToForeground(masks.begin()->second);
 
     LOG(INFO) << "save path : " << std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename();
     cv::imwrite(std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename(),
@@ -112,6 +119,39 @@ TEST(sam2_test, trt_core_point_track_correctness)
   }
 }
 
+TEST(sam2_test, trt_core_point_track_correctness_multi_obj)
+{
+  auto model   = CreateModel();
+  auto rgb_paths = GetTrackTestset();
+
+  for (size_t i = 0; i < rgb_paths.size(); ++i)
+  {
+    LOG(INFO) << "cur rgb path : " << rgb_paths[i];
+    cv::Mat image = cv::imread(rgb_paths[i].string());
+    CHECK(!image.empty());
+
+    CHECK(model->SetImage(image));
+
+    std::unordered_map<size_t, cv::Mat> masks;
+    if (i == 0)
+    {
+      CHECK(model->Register({{420, 220}}, std::vector<int>{1}, masks));
+      CHECK(model->Register({{120, 220}}, std::vector<int>{1}, masks));
+    } else
+    {
+      model->Track(masks);
+      CHECK(masks.size() == 2);
+    }
+    ImageDrawHelper helper(std::make_shared<cv::Mat>(image.clone()));
+    for (const auto& p_id_mask : masks) {
+      helper.addRedMaskToForeground(p_id_mask.second);
+    }
+
+    LOG(INFO) << "save path : " << std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename();
+    cv::imwrite(std::string("/workspace/test_data/track_result/") / rgb_paths[i].filename(),
+                *helper.getImage());
+  }
+}
 
 
 TEST(sam2_test, trt_core_point_track_speed)
@@ -126,13 +166,17 @@ TEST(sam2_test, trt_core_point_track_speed)
     cv::Mat image = cv::imread(rgb_paths[i % 2].string());
     CHECK(!image.empty());
 
-    cv::Mat masks;
+    CHECK(model->SetImage(image));
+
+    std::unordered_map<size_t, cv::Mat> masks;
     if (i == 0)
     {
-      model->Register(image, {{420, 220}}, std::vector<int>{1}, masks, false);
+      CHECK(model->Register({{420, 220}}, std::vector<int>{1}, masks));
+      CHECK(masks.size() == 1);
     } else
     {
-      model->Track(image, masks, false);
+      model->Track(masks);
+      CHECK(masks.size() == 1);
     }
     fps_counter.Count(1);
     if (i % 50 == 0)
