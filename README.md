@@ -65,9 +65,13 @@ bash tools/cvt_onnx2trt.sh
 2. 运行测试用例，具体测试用例请参考代码。
 ```bash
 cd /workspace/build
-./bin/simple_tests --gtest_filter=*correctness
+./bin/test_sam_sam2 --gtest_filter=*correctness
 # 限制GLOG输出
-GLOG_minloglevel=1 ./bin/simple_tests --gtest_filter=*track_speed
+GLOG_minloglevel=1 ./bin/test_sam_sam2 --gtest_filter=*speed
+# 使用ctest查看可用测试用例
+ctest -N
+# 直接使用ctest测试全部用例
+ctest
 ```
 
 ## References
