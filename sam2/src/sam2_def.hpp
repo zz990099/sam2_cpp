@@ -7,11 +7,11 @@ namespace sam {
 enum Sam2Mode { Normal = 0, Register = 1, Track = 2 };
 
 struct Sam2TrackPipelinePackage : public SamPipelinePackage {
-  std::shared_ptr<inference_core::IBlobsBuffer> memory_attention_blobs_buffer;
-  std::shared_ptr<inference_core::IBlobsBuffer> memory_encoder_blobs_buffer;
-  Sam2Mode                                      current_mode;
-  size_t                                        current_frame_idx;
-  size_t                                        current_obj_id;
+  std::shared_ptr<inference_core::BlobsTensor> memory_attention_blobs_buffer;
+  std::shared_ptr<inference_core::BlobsTensor> memory_encoder_blobs_buffer;
+  Sam2Mode                                     current_mode;
+  size_t                                       current_frame_idx;
+  size_t                                       current_obj_id;
 };
 
 class Sam2 : public BaseSam2TrackModel {
@@ -26,7 +26,8 @@ public:
        const std::vector<std::string>                     &memory_attention_blob_names,
        const std::vector<std::string>                     &memory_encoder_blob_names);
 
-  ~Sam2() {
+  ~Sam2()
+  {
     current_package_.reset();
   }
 
@@ -53,9 +54,11 @@ private:
   bool MaskPostProcess(ParsingType pipeline_unit) override;
 
 private:
-  bool _RunMemoryEncoderAndRecord(ParsingType pipeline_unit);
+  bool RunMemoryEncoderAndRecord(ParsingType pipeline_unit);
 
-  bool _MemoryAttentionPreProcess(ParsingType pipeline_unit);
+  bool MemoryAttentionPreProcess(ParsingType pipeline_unit);
+
+  bool PromptPointPreProcessTrackMode(ParsingType pipeline_unit);
 
 private:
   struct MemoryDict {
